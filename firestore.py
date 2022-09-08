@@ -14,15 +14,22 @@ class FirestoreConnector:
         firebase_admin.initialize_app(self.cred)
 
         self.db = firestore.client()
+        self.cache = {}
 
     def get_person(self, id: int, database: Database) -> Person:
+        cached = self.cache.get(id, None)
+        if cached is not None:
+            return cached
         doc_ref = self.db.collection("people").document(str(id))
         doc = doc_ref.get()
-        return self.from_dict(doc.to_dict(), id, database)
+        person =  self.from_dict(doc.to_dict(), id, database)
+        self.cache[id] = person
+        return person
 
     def set_person(self, id, person: Person) -> None:
         doc_ref = self.db.collection("people").document(str(id))
         doc_ref.set(self._prepare(person))
+        self.cache[id] = person
     
     def all_people(self, database: Database) -> Iterable[Person]:
         doc_refs = self.db.collection("people").list_documents()
