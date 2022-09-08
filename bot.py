@@ -276,6 +276,17 @@ class MarriageCog(commands.Cog):
                 file=discord.File(fp=image_binary, filename="tree.png"), view=view
             )
 
+    @commands.slash_command(description="Show your partners tree")
+    async def partners(self, ctx, person: discord.User = None):
+        await ctx.defer()
+        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, 0, None)
+        with BytesIO() as image_binary:
+            image.save(image_binary, "PNG")
+            image_binary.seek(0)
+            await ctx.followup.send(
+                file=discord.File(fp=image_binary, filename="tree.png"), view=view
+            )
+
 
 def main():
     load_dotenv(find_dotenv(usecwd=True))

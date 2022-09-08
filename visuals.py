@@ -12,7 +12,7 @@ def count_people(person, people):
 
 def get_name(i, downward=True):
     if not i:
-        return "starting point"
+        return "starting partner network"
     else:
         return "grand" * (i-1) + ("child" if downward else "parent") + " or their peer"
 
@@ -29,10 +29,10 @@ def remove_duplicates(people):
 
 
 def calculate_generations(person, direction_children=True, steps=2):
-    generations = [[(True, person)]]  # (isDirect, person)
-    partner_map_global = {}
+    partners = person.get_partners()
+    generations = [[(True, x) for x in partners[1]]]  # (isDirect, person)
     descendance_map = {}
-    people = [person]
+    partner_map_global, people = partners
     for i in range(steps):
         generations.append([])
         for _, person in generations[-2]:
@@ -95,7 +95,7 @@ def person_to_generations_and_coordinates(person, direction_children=True, steps
         person, direction_children, steps
     )
     generation_mapping = calculate_generation_mapping(generations)
-    graph_like_object = calculate_graph_like_object(partner_map, descendance_map)
+    graph_like_object = calculate_graph_like_object(partner_map, {} if direction_children is None else descendance_map)
     nx_graph = calculate_nx_graph(graph_like_object, nodes)
     positions = calculate_people_coordinates(nx_graph, person)
     return generation_mapping, positions, graph_like_object
@@ -153,30 +153,31 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
     font = ImageFont.truetype("impact.ttf", int(0.0625 * scale))
     for user_id, position in positions.items():
         # We have to draw the genreration pie chart first
-        slices = len(generation_mapping[user_id])
-        for i, slice in enumerate(generation_mapping[user_id]):
-            draw.pieslice(
-                [
-                    int(x)
-                    for x in list(
-                        np.concatenate(
-                            (
-                                position
-                                - ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
-                                - offset,
-                                position
-                                + ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
-                                - offset,
+        if downward is not None:
+            slices = len(generation_mapping[user_id])
+            for i, slice in enumerate(generation_mapping[user_id]):
+                draw.pieslice(
+                    [
+                        int(x)
+                        for x in list(
+                            np.concatenate(
+                                (
+                                    position
+                                    - ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
+                                    - offset,
+                                    position
+                                    + ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
+                                    - offset,
+                                )
                             )
+                            * scale
+                            + [scale, scale, scale, scale]
                         )
-                        * scale
-                        + [scale, scale, scale, scale]
-                    )
-                ],
-                360 / slices * i,
-                360 / slices * (i + 1),
-                fill=generation_colors[slice[1] % len(generation_colors)],
-            )
+                    ],
+                    360 / slices * i,
+                    360 / slices * (i + 1),
+                    fill=generation_colors[slice[1] % len(generation_colors)],
+                )
 
         url = profile_picture_map[user_id]
         if url:
@@ -214,7 +215,11 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
         draw.rounded_rectangle(box, padding, (59, 66, 82))
         draw.text(text_coords, text, (236, 239, 244), font=font)
 
+    if downward is None:
+        return image
     n_generations = max(max([generation[1] for generation in person]) for person in generation_mapping.values())
+    if not n_generations:
+        return image
     for i in range(n_generations+1):
         draw.ellipse(
             [
