@@ -217,9 +217,9 @@ class MarriageCog(commands.Cog):
         else:
             await ctx.respond("You are not related in that way", ephemeral=True)
 
-    async def build_tree_for(self, id: int, steps=2, direction_children=True):
+    async def build_tree_for(self, id: int, steps=2, direction_children=True, legend=True):
         generations, positions, links = visuals.person_to_generations_and_coordinates(
-            self.database.get_person(id), direction_children, steps
+            self.database.get_person(id), direction_children, steps,
         )
         profile_picture_map = {}
         username_map = {}
@@ -229,13 +229,18 @@ class MarriageCog(commands.Cog):
             profile_picture_map[user_id] = user.avatar and user.avatar.url
         return (
             visuals.render(
-                positions, links, generations, profile_picture_map, username_map, direction_children
+                positions, links, generations, profile_picture_map, username_map, direction_children, legend
             ),
             generations,
         )
 
-    async def build_tree_and_view_for(self, id: int, steps=2, direction_children=True):
-        image, generations = await self.build_tree_for(id, steps, direction_children)
+    async def build_tree_and_view_for(self, id: int, steps=2, direction_children=True, legend=True):
+        if direction_children == "both":
+            image_down, generations_down = await self.build_tree_for(id, steps, True, False)
+            image_up, generations_up = await self.build_tree_for(id, steps, False, False)
+            image, generations = visuals.merge_images(image_down, image_up, generations_down, generations_up)
+        else:
+            image, generations = await self.build_tree_for(id, steps, direction_children, legend)
         buttons = []
         for person, gendata in generations.items():
             allowed = False
@@ -276,10 +281,21 @@ class MarriageCog(commands.Cog):
                 file=discord.File(fp=image_binary, filename="tree.png"), view=view
             )
 
-    @commands.slash_command(description="Show your partners tree")
+    @commands.slash_command(description="Show your partner tree")
     async def partners(self, ctx, person: discord.User = None):
         await ctx.defer()
-        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, 0, None)
+        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, 0, None, False)
+        with BytesIO() as image_binary:
+            image.save(image_binary, "PNG")
+            image_binary.seek(0)
+            await ctx.followup.send(
+                file=discord.File(fp=image_binary, filename="tree.png"), view=view
+            )
+
+    @commands.slash_command(description="Show your family tree")
+    async def tree(self, ctx, person: discord.User = None, generations: int = 2):
+        await ctx.defer()
+        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, generations, "both", False)
         with BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)

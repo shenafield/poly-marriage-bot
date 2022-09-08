@@ -101,7 +101,7 @@ def person_to_generations_and_coordinates(person, direction_children=True, steps
     return generation_mapping, positions, graph_like_object
 
 
-def render(positions, links, generation_mapping, profile_picture_map, username_map, downward=True):
+def render(positions, links, generation_mapping, profile_picture_map, username_map, downward=True, display_legend=True):
     generation_colors = [
         (163, 190, 140),
         (235, 203, 139),
@@ -215,25 +215,58 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
         draw.rounded_rectangle(box, padding, (59, 66, 82))
         draw.text(text_coords, text, (236, 239, 244), font=font)
 
-    if downward is None:
+    if not display_legend:
         return image
+    draw_legend(draw, generation_mapping, generation_colors, scale, downward)
+
+    return image
+
+def draw_legend(draw, generation_mapping, generation_colors, scale, downward, initial_position=[0, 0]):
+    font = ImageFont.truetype("impact.ttf", int(0.0625 * scale))
     n_generations = max(max([generation[1] for generation in person]) for person in generation_mapping.values())
     if not n_generations:
-        return image
+        return
     for i in range(n_generations+1):
         draw.ellipse(
             [
-                int(scale*0.125),
-                int(scale*(i+1)*0.125),
-                int(scale*0.1875),
-                int(scale*(i+1.5)*0.125),
+                initial_position[0] + int(scale*0.125),
+                initial_position[1] + int(scale*(i+1)*0.125),
+                initial_position[0] + int(scale*0.1875),
+                initial_position[1] + int(scale*(i+1.5)*0.125),
             ],
             fill=generation_colors[i%len(generation_colors)]
         )
         draw.text(
-            [int(scale*0.25), int(scale*(i+1)*0.125)],
+            [initial_position[0] + int(scale*0.25), initial_position[1] + int(scale*(i+1)*0.125)],
             text=get_name(i, downward=downward),
             font=font
         )
 
-    return image
+def merge_images(image_down, image_up, generations_down, generations_up):
+    generation_colors = [
+        (163, 190, 140),
+        (235, 203, 139),
+        (208, 135, 112),
+        (191, 97, 106),
+        (180, 142, 173),
+    ]
+    scale = 1024
+
+    image = Image.new("RGB", (image_down.size[0] + image_up.size[0], max(image_down.size[1], image_up.size[1])), (46, 52, 64))
+    image.paste(image_down, [0, (image.size[1] - image_down.size[1]) // 2])
+    image.paste(image_up, [image_down.size[0], (image.size[1] - image_up.size[1]) // 2])
+    generations = {}
+    for person, generations_p in generations_down.items():
+        generations[person] = list(set(generations.get(person, []) + generations_p))
+    for person, generations_p in generations_up.items():
+        generations[person] = list(set(generations.get(person, []) + generations_p))
+    
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype("impact.ttf", int(0.125 * scale))
+
+    draw.text([int(scale*0.125), int(scale*0.125)], "Descendants", font=font)
+    draw.text([int(scale*0.125) + image_down.size[0], int(scale*0.125)], "Ancestors", font=font)
+    draw_legend(draw, generations_down, generation_colors, scale, True, [0, int(scale*0.15)])
+    draw_legend(draw, generations_up, generation_colors, scale, False, [image_down.size[0], int(scale*0.15)])
+
+    return image, generations
