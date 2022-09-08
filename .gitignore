@@ -161,3 +161,9 @@ cython_debug/
 
 # Firestore credentials
 credentials.json
+
+# Font files
+impact.zip
+impact.ttf
+Impacted.ttf
+unicode.impact.ttf
