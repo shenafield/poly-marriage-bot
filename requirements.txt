@@ -1,0 +1,6 @@
+py-cord==2.0.0
+firebase-admin
+networkx
+pillow
+numpy
+python-dotenv
