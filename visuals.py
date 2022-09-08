@@ -12,7 +12,7 @@ def count_people(person, people):
 
 def get_name(i, downward=True):
     if not i:
-        return "you"
+        return "starting point"
     else:
         return "grand" * (i-1) + ("child" if downward else "parent") + " or their peer"
 

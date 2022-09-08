@@ -255,9 +255,9 @@ class MarriageCog(commands.Cog):
         return image, view
 
     @commands.slash_command(description="Show your descendants tree")
-    async def descendants(self, ctx, generations: int = 2):
+    async def descendants(self, ctx, person: discord.User = None, generations: int = 2):
         await ctx.defer()
-        image, view = await self.build_tree_and_view_for(ctx.author.id, generations)
+        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, generations)
         with BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)
@@ -266,9 +266,9 @@ class MarriageCog(commands.Cog):
             )
 
     @commands.slash_command(description="Show your ancestors tree")
-    async def ancestors(self, ctx, generations: int = 2):
+    async def ancestors(self, ctx, person: discord.User = None, generations: int = 2):
         await ctx.defer()
-        image, view = await self.build_tree_and_view_for(ctx.author.id, generations, False)
+        image, view = await self.build_tree_and_view_for(ctx.author.id if person is None else person.id, generations, False)
         with BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)
