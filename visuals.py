@@ -10,6 +10,12 @@ import requests
 def count_people(person, people):
     return len([target for target in people if target.id == person.id])
 
+def get_name(i, downward=True):
+    if not i:
+        return "you"
+    else:
+        return "grand" * (i-1) + ("child" if downward else "parent") + " or their peer"
+
 
 def remove_duplicates(people):
     output = copy.copy(people)
@@ -95,7 +101,7 @@ def person_to_generations_and_coordinates(person, direction_children=True, steps
     return generation_mapping, positions, graph_like_object
 
 
-def render(positions, links, generation_mapping, profile_picture_map, username_map):
+def render(positions, links, generation_mapping, profile_picture_map, username_map, downward=True):
     generation_colors = [
         (163, 190, 140),
         (235, 203, 139),
@@ -156,10 +162,10 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
                         np.concatenate(
                             (
                                 position
-                                - ([0.125, 0.125] if slice[0] else [0.10625, 0.10625])
+                                - ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
                                 - offset,
                                 position
-                                + ([0.125, 0.125] if slice[0] else [0.10625, 0.10625])
+                                + ([0.125, 0.125] if slice[0] else [0.1125, 0.1125])
                                 - offset,
                             )
                         )
@@ -169,7 +175,7 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
                 ],
                 360 / slices * i,
                 360 / slices * (i + 1),
-                fill=generation_colors[slice[1]],
+                fill=generation_colors[slice[1] % len(generation_colors)],
             )
 
         url = profile_picture_map[user_id]
@@ -183,7 +189,9 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
                 pfp,
                 [
                     int(x)
-                    for x in list((position - [0.1, 0.1] - offset) * scale + [scale, scale])
+                    for x in list(
+                        (position - [0.1, 0.1] - offset) * scale + [scale, scale]
+                    )
                 ],
                 mask,
             )
@@ -205,5 +213,22 @@ def render(positions, links, generation_mapping, profile_picture_map, username_m
         ]
         draw.rounded_rectangle(box, padding, (59, 66, 82))
         draw.text(text_coords, text, (236, 239, 244), font=font)
+
+    n_generations = max(max([generation[1] for generation in person]) for person in generation_mapping.values())
+    for i in range(n_generations+1):
+        draw.ellipse(
+            [
+                int(scale*0.125),
+                int(scale*(i+1)*0.125),
+                int(scale*0.1875),
+                int(scale*(i+1.5)*0.125),
+            ],
+            fill=generation_colors[i%len(generation_colors)]
+        )
+        draw.text(
+            [int(scale*0.25), int(scale*(i+1)*0.125)],
+            text=get_name(i, downward=downward),
+            font=font
+        )
 
     return image

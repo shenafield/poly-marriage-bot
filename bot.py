@@ -229,7 +229,7 @@ class MarriageCog(commands.Cog):
             profile_picture_map[user_id] = user.avatar and user.avatar.url
         return (
             visuals.render(
-                positions, links, generations, profile_picture_map, username_map
+                positions, links, generations, profile_picture_map, username_map, direction_children
             ),
             generations,
         )
