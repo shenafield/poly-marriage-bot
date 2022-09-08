@@ -280,7 +280,7 @@ class MarriageCog(commands.Cog):
 def main():
     load_dotenv(find_dotenv(usecwd=True))
     bot = commands.Bot(
-        command_prefix=commands.when_mentioned, debug_guilds=[800289267834290186, 1016987460305166366]
+        command_prefix=commands.when_mentioned
     )
     bot.add_cog(MarriageCog(bot))
     bot.run(os.getenv("TOKEN"))
